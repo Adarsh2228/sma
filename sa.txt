@@ -1,0 +1,80 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from textblob import TextBlob
+from wordcloud import WordCloud
+import re
+
+# === CONFIGURATION ===
+text_col = "Comments"          # Column containing user text/comments
+sentiment_col = None           # If sentiment already provided (e.g., "Sentiment")
+
+# === Load Dataset ===
+df = pd.read_csv("your_dataset.csv")  # Replace with your file path
+
+# === Clean Text Function ===
+def clean_text(text):
+    text = str(text)
+    text = re.sub(r"http\S+|@\w+|#\w+", "", text)  # Remove links/mentions/hashtags
+    text = re.sub(r"[^A-Za-z\s]", "", text)        # Remove special characters
+    return text.lower()
+
+if sentiment_col is None:
+    # === EDA and Sentiment Analysis from Text ===
+    df[text_col] = df[text_col].astype(str).fillna("No Comment")
+    df["clean_text"] = df[text_col].apply(clean_text)
+    df["polarity"] = df["clean_text"].apply(lambda x: TextBlob(x).sentiment.polarity)
+    df["sentiment"] = df["polarity"].apply(lambda x: "Positive" if x > 0 else ("Negative" if x < 0 else "Neutral"))
+else:
+    # Use existing sentiment column if provided
+    df["sentiment"] = df[sentiment_col]
+
+# === Show Dataset Info ===
+print(df[["clean_text" if sentiment_col is None else text_col, "sentiment"]].head())
+print(df["sentiment"].value_counts())
+
+# === 1. Count of Sentiments ===
+plt.figure(figsize=(8, 5))
+sns.countplot(data=df, x="sentiment", palette="coolwarm")
+plt.title("Sentiment Distribution")
+plt.xlabel("Sentiment Type")
+plt.ylabel("Number of Posts")
+plt.show()
+
+# === 2. Polarity Distribution Histogram ===
+if "polarity" in df.columns:
+    plt.figure(figsize=(10, 5))
+    sns.histplot(df["polarity"], kde=True, bins=30, color='purple')
+    plt.title("Polarity Score Distribution")
+    plt.xlabel("Polarity")
+    plt.ylabel("Frequency")
+    plt.show()
+
+# === 3. WordCloud for Positive Sentiments ===
+positive_text = " ".join(df[df["sentiment"] == "Positive"][text_col].astype(str))
+wordcloud_pos = WordCloud(width=800, height=400, background_color="white", colormap="Greens").generate(positive_text)
+
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud_pos, interpolation='bilinear')
+plt.axis("off")
+plt.title("WordCloud for Positive Comments")
+plt.show()
+
+# === 4. WordCloud for Negative Sentiments ===
+negative_text = " ".join(df[df["sentiment"] == "Negative"][text_col].astype(str))
+wordcloud_neg = WordCloud(width=800, height=400, background_color="black", colormap="Reds").generate(negative_text)
+
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud_neg, interpolation='bilinear')
+plt.axis("off")
+plt.title("WordCloud for Negative Comments")
+plt.show()
+
+# === 5. Boxplot of Polarity by Sentiment ===
+if "polarity" in df.columns:
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=df, x="sentiment", y="polarity", palette="Set2")
+    plt.title("Polarity Score Distribution by Sentiment")
+    plt.ylabel("Polarity Score")
+    plt.xlabel("Sentiment")
+    plt.show()
