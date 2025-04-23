@@ -124,7 +124,84 @@ plt.title("Correlation Between Numerical Features")
 plt.show()
 
 # Save cleaned version (optional)
-df.to_csv("cleaned_brand_data.csv", index=False)
 
-# ✔ Summary Done!
-print("EDA and Brand Analysis Complete. Modify only column names to reuse.")
+
+
+2nd option
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from textblob import TextBlob
+
+# Step 1: Load the dataset
+# Replace this with your actual dataset path
+df = pd.read_csv('path_to_your_dataset.csv')
+
+# Step 2: Filter Posts by Brand Mention
+brand_name = 'BrandName'  # Replace with the brand name you're analyzing
+df_brand = df[df['Content'].str.contains(brand_name, case=False, na=False)]
+
+# Step 3: Sentiment Analysis of Brand-related Posts
+# Calculate the polarity of each post using TextBlob
+df_brand['polarity'] = df_brand['Content'].apply(lambda x: TextBlob(str(x)).sentiment.polarity)
+
+# Classify sentiment based on polarity
+df_brand['sentiment'] = df_brand['polarity'].apply(lambda x: 'Positive' if x > 0 else ('Negative' if x < 0 else 'Neutral'))
+
+# Step 4: Engagement Analysis - Calculate engagement rate
+# Engagement rate: (Likes + Comments + Shares) / Followers
+df_brand['engagement'] = (df_brand['Likes'] + df_brand['Comments'] + df_brand['Shares']) / df_brand['Followers']
+
+# Step 5: Visualizing the Sentiment Distribution of Brand-related Posts
+plt.figure(figsize=(8, 5))
+sns.countplot(data=df_brand, x='sentiment', palette='coolwarm')
+plt.title(f"Sentiment Distribution of Posts About {brand_name}")
+plt.xlabel("Sentiment")
+plt.ylabel("Number of Posts")
+plt.show()
+
+# Step 6: Visualizing the Average Engagement by Sentiment
+plt.figure(figsize=(8, 5))
+sns.barplot(data=df_brand, x='sentiment', y='engagement', palette='viridis')
+plt.title(f"Average Engagement by Sentiment for {brand_name}")
+plt.xlabel("Sentiment")
+plt.ylabel("Average Engagement")
+plt.show()
+
+# Step 7: Word Cloud of Brand-related Posts
+from wordcloud import WordCloud
+
+# Join all the brand-related content into a single string
+brand_posts = ' '.join(df_brand['Content'].dropna())
+
+# Generate WordCloud
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(brand_posts)
+
+# Display WordCloud
+plt.figure(figsize=(10, 6))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title(f"Word Cloud for Posts About {brand_name}")
+plt.show()
+
+# Step 8: Display Top 5 Most Engaging Brand Posts
+# Calculate engagement score
+df_brand['Engagement_Score'] = df_brand['Likes'] + 2 * df_brand['Comments'] + 3 * df_brand['Shares']
+
+# Sort by engagement score
+df_brand_sorted = df_brand.sort_values(by="Engagement_Score", ascending=False)
+
+# Display top 5 most engaging posts
+top_5_posts = df_brand_sorted.head(5)
+print("Top 5 Most Engaging Posts About the Brand:")
+print(top_5_posts[['Content', 'Engagement_Score']])
+
+# Step 9: Visualize Top 5 Most Engaging Brand Posts (Horizontal Bar Chart)
+plt.figure(figsize=(10, 6))
+plt.barh(top_5_posts['Content'], top_5_posts['Engagement_Score'], color='steelblue')
+plt.title(f"Top 5 Most Engaging Posts About {brand_name}")
+plt.xlabel("Engagement Score")
+plt.gca().invert_yaxis()
+plt.tight_layout()
+plt.show()
+
